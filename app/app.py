@@ -7,9 +7,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-# ---------------------------------------------------------
-# Page Configuration
-# ---------------------------------------------------------
 st.set_page_config(
     page_title="Beijing Air Quality Analysis",
     page_icon="🌫️",
@@ -17,9 +14,6 @@ st.set_page_config(
 )
 
 
-# ---------------------------------------------------------
-# File Paths
-# ---------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 DATA_PATH = BASE_DIR / "data" / "processed" / "cleaned_air_quality.csv"
@@ -29,9 +23,6 @@ WD_ENCODER_PATH = BASE_DIR / "models" / "wd_encoder.pkl"
 SEASON_ENCODER_PATH = BASE_DIR / "models" / "season_encoder.pkl"
 
 
-# ---------------------------------------------------------
-# Load Data and Model
-# ---------------------------------------------------------
 @st.cache_data
 def load_data():
     df = pd.read_csv(DATA_PATH)
@@ -52,9 +43,6 @@ df = load_data()
 model, station_encoder, wd_encoder, season_encoder = load_model_files()
 
 
-# ---------------------------------------------------------
-# Sidebar Navigation
-# ---------------------------------------------------------
 st.sidebar.title("Navigation")
 
 page = st.sidebar.radio(
@@ -73,9 +61,6 @@ st.sidebar.write("Urban: Dongsi, Tiantan")
 st.sidebar.write("Suburban: Huairou, Dingling")
 
 
-# ---------------------------------------------------------
-# Project Overview
-# ---------------------------------------------------------
 if page == "Project Overview":
     st.title("🌫️ Beijing Air Quality Analysis and PM2.5 Prediction")
 
@@ -115,9 +100,6 @@ if page == "Project Overview":
     """)
 
 
-# ---------------------------------------------------------
-# Dataset Section
-# ---------------------------------------------------------
 elif page == "Dataset Section":
     st.title("📊 Dataset Section")
 
@@ -179,9 +161,6 @@ elif page == "Dataset Section":
     st.dataframe(filtered_df[numeric_columns].describe().round(2), use_container_width=True)
 
 
-# ---------------------------------------------------------
-# Visualisation Section
-# ---------------------------------------------------------
 elif page == "Visualisation Section":
     st.title("📈 Visualisation Section")
 
@@ -283,9 +262,6 @@ elif page == "Visualisation Section":
     st.pyplot(fig)
 
 
-# ---------------------------------------------------------
-# Model Output Section
-# ---------------------------------------------------------
 elif page == "Model Output Section":
     st.title("🤖 Model Output Section")
 
