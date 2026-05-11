@@ -341,6 +341,8 @@ elif page == "Model Output Section":
         st.info(f"Predicted Air Quality Category: {category}")
 
     st.subheader("Model Information")
+    
+    
 
     st.markdown("""
     **Model Used:** Random Forest Regressor  
