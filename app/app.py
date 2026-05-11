@@ -342,8 +342,6 @@ elif page == "Model Output Section":
 
     st.subheader("Model Information")
     
-    
-
     st.markdown("""
     **Model Used:** Random Forest Regressor  
     **Target Variable:** PM2.5  
