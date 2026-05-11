@@ -32,6 +32,14 @@ def load_data():
 
 @st.cache_resource
 def load_model_files():
+    if (
+        not MODEL_PATH.exists()
+        or not STATION_ENCODER_PATH.exists()
+        or not WD_ENCODER_PATH.exists()
+        or not SEASON_ENCODER_PATH.exists()
+    ):
+        return None, None, None, None
+
     model = joblib.load(MODEL_PATH)
     station_encoder = joblib.load(STATION_ENCODER_PATH)
     wd_encoder = joblib.load(WD_ENCODER_PATH)
@@ -269,101 +277,139 @@ elif page == "Model Output Section":
     This section predicts **PM2.5 concentration** using the trained Random Forest Regression model.
     """)
 
-    st.subheader("Enter Input Values for PM2.5 Prediction")
+    if model is None or station_encoder is None or wd_encoder is None or season_encoder is None:
+        st.warning(
+            "Model prediction is not available on Streamlit Cloud because the trained model file is larger than GitHub's upload limit."
+        )
+        st.info(
+            "The Project Overview, Dataset Section and Visualisation Section are still available. "
+            "To use the PM2.5 prediction feature, run the application locally with the model files inside the models folder."
+        )
 
-    col1, col2, col3 = st.columns(3)
+        st.subheader("Model Information")
 
-    with col1:
-        station = st.selectbox("Station", sorted(df["station"].unique()))
-        wd = st.selectbox("Wind Direction", sorted(df["wd"].unique()))
-        season = st.selectbox("Season", ["Winter", "Spring", "Summer", "Autumn"])
-        month = st.slider("Month", 1, 12, 1)
-        day = st.slider("Day", 1, 31, 1)
-        hour = st.slider("Hour", 0, 23, 12)
+        st.markdown("""
+        **Model Used:** Random Forest Regressor  
+        **Target Variable:** PM2.5  
+        **Purpose:** Predict PM2.5 concentration using pollutant, meteorological, temporal and station-based features.
+        """)
 
-    with col2:
-        pm10 = st.number_input("PM10", min_value=0.0, value=80.0)
-        so2 = st.number_input("SO2", min_value=0.0, value=10.0)
-        no2 = st.number_input("NO2", min_value=0.0, value=40.0)
-        co = st.number_input("CO", min_value=0.0, value=800.0)
-        o3 = st.number_input("O3", min_value=0.0, value=50.0)
+        performance_path = BASE_DIR / "data" / "processed" / "model_performance_results.csv"
+        feature_path = BASE_DIR / "data" / "processed" / "feature_importance.csv"
 
-    with col3:
-        temp = st.number_input("Temperature", value=15.0)
-        pres = st.number_input("Pressure", value=1010.0)
-        dewp = st.number_input("Dew Point", value=2.0)
-        rain = st.number_input("Rain", min_value=0.0, value=0.0)
-        wspm = st.number_input("Wind Speed", min_value=0.0, value=1.5)
+        if performance_path.exists():
+            st.subheader("Model Performance Results")
+            performance_df = pd.read_csv(performance_path)
+            st.dataframe(performance_df.round(4), use_container_width=True)
 
-    day_of_week = st.slider("Day of Week", 0, 6, 0)
+        if feature_path.exists():
+            st.subheader("Feature Importance")
 
-    station_encoded = station_encoder.transform([station])[0]
-    wd_encoded = wd_encoder.transform([wd])[0]
-    season_encoded = season_encoder.transform([season])[0]
+            feature_df = pd.read_csv(feature_path)
 
-    input_data = pd.DataFrame({
-        "PM10": [pm10],
-        "SO2": [so2],
-        "NO2": [no2],
-        "CO": [co],
-        "O3": [o3],
-        "TEMP": [temp],
-        "PRES": [pres],
-        "DEWP": [dewp],
-        "RAIN": [rain],
-        "WSPM": [wspm],
-        "year": [2017],
-        "month": [month],
-        "day": [day],
-        "hour": [hour],
-        "day_of_week": [day_of_week],
-        "station_encoded": [station_encoded],
-        "wd_encoded": [wd_encoded],
-        "season_encoded": [season_encoded]
-    })
+            fig, ax = plt.subplots(figsize=(10, 6))
+            sns.barplot(data=feature_df, x="Importance", y="Feature", ax=ax)
+            ax.set_title("Random Forest Feature Importance")
+            ax.set_xlabel("Importance")
+            ax.set_ylabel("Feature")
+            st.pyplot(fig)
 
-    if st.button("Predict PM2.5"):
-        prediction = model.predict(input_data)[0]
+    else:
+        st.subheader("Enter Input Values for PM2.5 Prediction")
 
-        st.success(f"Predicted PM2.5 Concentration: {prediction:.2f}")
+        col1, col2, col3 = st.columns(3)
 
-        if prediction <= 35:
-            category = "Good"
-        elif prediction <= 75:
-            category = "Moderate"
-        elif prediction <= 115:
-            category = "Unhealthy"
-        elif prediction <= 150:
-            category = "Very Unhealthy"
-        else:
-            category = "Hazardous"
+        with col1:
+            station = st.selectbox("Station", sorted(df["station"].unique()))
+            wd = st.selectbox("Wind Direction", sorted(df["wd"].unique()))
+            season = st.selectbox("Season", ["Winter", "Spring", "Summer", "Autumn"])
+            month = st.slider("Month", 1, 12, 1)
+            day = st.slider("Day", 1, 31, 1)
+            hour = st.slider("Hour", 0, 23, 12)
 
-        st.info(f"Predicted Air Quality Category: {category}")
+        with col2:
+            pm10 = st.number_input("PM10", min_value=0.0, value=80.0)
+            so2 = st.number_input("SO2", min_value=0.0, value=10.0)
+            no2 = st.number_input("NO2", min_value=0.0, value=40.0)
+            co = st.number_input("CO", min_value=0.0, value=800.0)
+            o3 = st.number_input("O3", min_value=0.0, value=50.0)
 
-    st.subheader("Model Information")
-    
-    st.markdown("""
-    **Model Used:** Random Forest Regressor  
-    **Target Variable:** PM2.5  
-    **Purpose:** Predict PM2.5 concentration using pollutant, meteorological, temporal and station-based features.
-    """)
+        with col3:
+            temp = st.number_input("Temperature", value=15.0)
+            pres = st.number_input("Pressure", value=1010.0)
+            dewp = st.number_input("Dew Point", value=2.0)
+            rain = st.number_input("Rain", min_value=0.0, value=0.0)
+            wspm = st.number_input("Wind Speed", min_value=0.0, value=1.5)
 
-    performance_path = BASE_DIR / "data" / "processed" / "model_performance_results.csv"
-    feature_path = BASE_DIR / "data" / "processed" / "feature_importance.csv"
+        day_of_week = st.slider("Day of Week", 0, 6, 0)
 
-    if performance_path.exists():
-        st.subheader("Model Performance Results")
-        performance_df = pd.read_csv(performance_path)
-        st.dataframe(performance_df.round(4), use_container_width=True)
+        station_encoded = station_encoder.transform([station])[0]
+        wd_encoded = wd_encoder.transform([wd])[0]
+        season_encoded = season_encoder.transform([season])[0]
 
-    if feature_path.exists():
-        st.subheader("Feature Importance")
+        input_data = pd.DataFrame({
+            "PM10": [pm10],
+            "SO2": [so2],
+            "NO2": [no2],
+            "CO": [co],
+            "O3": [o3],
+            "TEMP": [temp],
+            "PRES": [pres],
+            "DEWP": [dewp],
+            "RAIN": [rain],
+            "WSPM": [wspm],
+            "year": [2017],
+            "month": [month],
+            "day": [day],
+            "hour": [hour],
+            "day_of_week": [day_of_week],
+            "station_encoded": [station_encoded],
+            "wd_encoded": [wd_encoded],
+            "season_encoded": [season_encoded]
+        })
 
-        feature_df = pd.read_csv(feature_path)
+        if st.button("Predict PM2.5"):
+            prediction = model.predict(input_data)[0]
 
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.barplot(data=feature_df, x="Importance", y="Feature", ax=ax)
-        ax.set_title("Random Forest Feature Importance")
-        ax.set_xlabel("Importance")
-        ax.set_ylabel("Feature")
-        st.pyplot(fig)
+            st.success(f"Predicted PM2.5 Concentration: {prediction:.2f}")
+
+            if prediction <= 35:
+                category = "Good"
+            elif prediction <= 75:
+                category = "Moderate"
+            elif prediction <= 115:
+                category = "Unhealthy"
+            elif prediction <= 150:
+                category = "Very Unhealthy"
+            else:
+                category = "Hazardous"
+
+            st.info(f"Predicted Air Quality Category: {category}")
+
+        st.subheader("Model Information")
+
+        st.markdown("""
+        **Model Used:** Random Forest Regressor  
+        **Target Variable:** PM2.5  
+        **Purpose:** Predict PM2.5 concentration using pollutant, meteorological, temporal and station-based features.
+        """)
+
+        performance_path = BASE_DIR / "data" / "processed" / "model_performance_results.csv"
+        feature_path = BASE_DIR / "data" / "processed" / "feature_importance.csv"
+
+        if performance_path.exists():
+            st.subheader("Model Performance Results")
+            performance_df = pd.read_csv(performance_path)
+            st.dataframe(performance_df.round(4), use_container_width=True)
+
+        if feature_path.exists():
+            st.subheader("Feature Importance")
+
+            feature_df = pd.read_csv(feature_path)
+
+            fig, ax = plt.subplots(figsize=(10, 6))
+            sns.barplot(data=feature_df, x="Importance", y="Feature", ax=ax)
+            ax.set_title("Random Forest Feature Importance")
+            ax.set_xlabel("Importance")
+            ax.set_ylabel("Feature")
+            st.pyplot(fig)
